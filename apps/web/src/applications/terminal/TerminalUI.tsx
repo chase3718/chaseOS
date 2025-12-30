@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Terminal } from '../../kernel/terminal';
 import { useKernel } from '../../contexts/useKernel';
-import { TERMINAL_WELCOME_MESSAGE, TERMINAL_PROMPT_DEFAULT, CLEAR_SCREEN_CODE } from '../../constants';
+import {
+	TERMINAL_WELCOME_MESSAGE,
+	TERMINAL_PROMPT_DEFAULT,
+	CLEAR_SCREEN_CODE,
+	KEYBIND_INTERRUPT,
+	KEYBIND_CLEAR_TERMINAL,
+} from '../../constants';
 import './TerminalUI.css';
 
 interface OutputLine {
@@ -123,7 +129,7 @@ export function TerminalUI() {
 				setHistoryIndex(newIndex);
 				setInput(history[newIndex]);
 			}
-		} else if (e.key === 'c' && e.ctrlKey) {
+		} else if (e.ctrlKey && e.key === KEYBIND_INTERRUPT.key) {
 			e.preventDefault();
 			setInput('');
 			setLines((prev) => [
@@ -134,7 +140,7 @@ export function TerminalUI() {
 					prompt: terminal.prompt,
 				},
 			]);
-		} else if (e.key === 'l' && e.ctrlKey) {
+		} else if (e.ctrlKey && e.key === KEYBIND_CLEAR_TERMINAL.key) {
 			e.preventDefault();
 			setLines([]);
 		}

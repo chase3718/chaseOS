@@ -1,11 +1,11 @@
 import './Window.css';
-import { WINDOW_HEADER_TITLE } from '../../constants';
 
 export type WindowProps = {
 	children: React.ReactNode;
 	focused?: boolean;
 	minimized?: boolean;
 	id: string;
+	title?: string;
 	onFocus?: () => void;
 	closeWindow: (id: string) => void;
 	setWindowMinimized: (id: string, minimized: boolean) => void;
@@ -19,6 +19,7 @@ export default function Window({
 	id,
 	minimized,
 	setWindowMinimized,
+	title = 'Window',
 }: WindowProps) {
 	return (
 		<div
@@ -27,7 +28,7 @@ export default function Window({
 			tabIndex={0}
 		>
 			<div className="window-header">
-				{WINDOW_HEADER_TITLE}
+				{title}
 				<span className="button-group">
 					<button className="window-button maximize" onClick={(e) => e.stopPropagation()}></button>
 					<button

@@ -5,16 +5,33 @@ import Clock from './widgets/clock';
 export type StatusBarProps = {
 	windows: Array<WindowItem>;
 	setWindowMinimized: (id: string, minimized: boolean) => void;
+	setFocusedWindow: (id: string | undefined) => void;
+	focusedWindow?: string;
 };
 
-export default function StatusBar({ windows, setWindowMinimized }: StatusBarProps) {
+export default function StatusBar({ windows, setWindowMinimized, focusedWindow, setFocusedWindow }: StatusBarProps) {
 	return (
 		<div id="status-bar">
 			Status Bar
 			<span className="status-bar-spacer" />
 			<span className="status-bar-task-items-container">
 				{windows.map((win) => (
-					<button key={win.id} className="status-bar-task-item" onClick={() => setWindowMinimized(win.id, false)}>
+					<button
+						key={win.id}
+						className={`status-bar-task-item ${win.minimized ? 'minimized' : 'active'} ${
+							win.id === focusedWindow ? 'focused' : ''
+						}`}
+						onClick={() => {
+							if (win.id !== focusedWindow) {
+								if (win.minimized) {
+									setWindowMinimized(win.id, false);
+								}
+								setFocusedWindow(win.id);
+							} else {
+								setWindowMinimized(win.id, true);
+							}
+						}}
+					>
 						{win.title}
 					</button>
 				))}

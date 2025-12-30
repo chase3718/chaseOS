@@ -18,7 +18,7 @@ function AppContent() {
 	const [windows, setWindows] = useState<WindowItem[]>([
 		{ id: crypto.randomUUID(), title: 'Terminal', component: <TerminalUI /> },
 	]);
-	const [focusedWindow, setFocusedWindow] = useState<string | null>(windows[0]?.id || null);
+	const [focusedWindow, setFocusedWindow] = useState<string | undefined>(windows[0]?.id || undefined);
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,15 +42,12 @@ function AppContent() {
 			) {
 				e.preventDefault();
 				e.stopPropagation();
-				if (focusedWindow) {
+				if (focusedWindow !== undefined) {
 					setWindows((prev) => {
 						const filtered = prev.filter((w) => w.id !== focusedWindow);
-						// Set focus to first remaining window
-						if (filtered.length > 0) {
-							setFocusedWindow(filtered[0].id);
-						} else {
-							setFocusedWindow(null);
-						}
+						// Set focus to first remaining non-minimized window
+						const nextFocus = filtered.find((w) => !w.minimized);
+						setFocusedWindow(nextFocus?.id);
 						return filtered;
 					});
 				}
@@ -59,30 +56,34 @@ function AppContent() {
 
 		window.addEventListener('keydown', handleKeyDown, { capture: true });
 		return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-	}, [focusedWindow, windows.length]);
+	}, [focusedWindow, windows]);
 
 	const closeWindow = (id: string) => {
 		setWindows((prev) => prev.filter((w) => w.id !== id));
 		if (focusedWindow === id) {
-			const remaining = windows.filter((w) => w.id !== id);
-			setFocusedWindow(remaining[0]?.id || null);
+			const remaining = windows.filter((w) => w.id !== id) || undefined;
+			setFocusedWindow(remaining[0]?.id || undefined);
 		}
 	};
 
 	const setWindowMinimized = (id: string, minimized: boolean = true) => {
 		console.log('Setting window', id, 'minimized to', minimized);
+		if (minimized && focusedWindow === id) {
+			const remaining = windows.filter((w) => w.id !== id && !w.minimized);
+			setFocusedWindow(remaining[0]?.id || undefined);
+		}
 		setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, minimized } : w)));
 	};
 
 	return (
 		<>
-			<StatusBar setWindowMinimized={setWindowMinimized} windows={windows} />
 			<div id="desktop">
 				<div className="tiling-container">
 					{windows.map((win) => (
 						<Window
 							key={win.id}
 							id={win.id}
+							title={win.title}
 							focused={win.id === focusedWindow}
 							onFocus={() => setFocusedWindow(win.id)}
 							closeWindow={closeWindow}
@@ -94,6 +95,12 @@ function AppContent() {
 					))}
 				</div>
 			</div>
+			<StatusBar
+				setFocusedWindow={setFocusedWindow}
+				focusedWindow={focusedWindow}
+				setWindowMinimized={setWindowMinimized}
+				windows={windows}
+			/>
 		</>
 	);
 }

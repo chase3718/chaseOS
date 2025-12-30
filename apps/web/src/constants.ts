@@ -6,7 +6,6 @@ export const TERMINAL_PROMPT_DEFAULT = 'chaseos';
 export const CLEAR_SCREEN_CODE = '\u001b[2J\u001b[H';
 
 // Window layout
-export const WINDOW_HEADER_TITLE = 'Terminal';
 export const WINDOW_GRID_GAP = 8;
 export const WINDOW_PADDING = 8;
 export const GRID_COLS = 12;

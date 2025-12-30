@@ -125,69 +125,69 @@ export class KernelClient {
 	 * Calls the kernel's hello function.
 	 */
 	hello(name: string): Promise<string> {
-		return this.request<string>({ type: 'hello', name });
+		return this.request<string>({ type: 'hello', name } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Creates a directory at the specified path.
 	 */
 	fs_mkdir(path: string): Promise<void> {
-		return this.request<void>({ type: 'fs_mkdir', path });
+		return this.request<void>({ type: 'fs_mkdir', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Lists the contents of a directory.
 	 */
 	fs_readdir(path: string): Promise<string[]> {
-		return this.request<string[]>({ type: 'fs_readdir', path });
+		return this.request<string[]>({ type: 'fs_readdir', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Writes data to a file.
 	 */
 	fs_write_file(path: string, data: Uint8Array): Promise<void> {
-		return this.request<void>({ type: 'fs_write_file', path, data });
+		return this.request<void>({ type: 'fs_write_file', path, data } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Reads the contents of a file.
 	 */
 	fs_read_file(path: string): Promise<Uint8Array> {
-		return this.request<Uint8Array>({ type: 'fs_read_file', path });
+		return this.request<Uint8Array>({ type: 'fs_read_file', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Gets information about a file or directory.
 	 */
 	fs_stat(path: string): Promise<import('./protocol').FsStat> {
-		return this.request<import('./protocol').FsStat>({ type: 'fs_stat', path });
+		return this.request<import('./protocol').FsStat>({ type: 'fs_stat', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Removes a file.
 	 */
 	fs_rm(path: string): Promise<void> {
-		return this.request<void>({ type: 'fs_rm', path });
+		return this.request<void>({ type: 'fs_rm', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Removes an empty directory.
 	 */
 	fs_rmdir(path: string): Promise<void> {
-		return this.request<void>({ type: 'fs_rmdir', path });
+		return this.request<void>({ type: 'fs_rmdir', path } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Moves/renames a file or directory.
 	 */
 	fs_mv(from: string, to: string): Promise<void> {
-		return this.request<void>({ type: 'fs_mv', from, to });
+		return this.request<void>({ type: 'fs_mv', from, to } as Omit<KernelRequest, 'id'>);
 	}
 
 	/**
 	 * Copies a file.
 	 */
 	fs_cp(from: string, to: string): Promise<void> {
-		return this.request<void>({ type: 'fs_cp', from, to });
+		return this.request<void>({ type: 'fs_cp', from, to } as Omit<KernelRequest, 'id'>);
 	}
 }

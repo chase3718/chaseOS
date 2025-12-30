@@ -35,3 +35,12 @@
 .status-bar-task-item:hover {
 	background-color: rgba(0, 200, 255, 0.5);
 }
+
+.status-bar-task-item.minimized {
+	opacity: 0.6;
+}
+
+.status-bar-task-item.focused {
+	background-color: rgba(0, 200, 255, 0.8);
+	border-color: rgba(0, 200, 255, 0.9);
+}
