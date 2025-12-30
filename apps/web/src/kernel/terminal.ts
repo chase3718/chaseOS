@@ -1,5 +1,6 @@
 import type { KernelClient } from './kernelClient';
 import { clearDatabase } from './idbDriver';
+import { defaultAppConfig } from '../config/appConfig';
 
 export type TerminalResult = {
 	stdout: string;
@@ -10,6 +11,7 @@ export type TerminalResult = {
 export type TerminalOptions = {
 	cwd?: string;
 	prompt?: string;
+	clearScreenCode?: string;
 };
 
 type CommandHandler = (args: string[]) => Promise<TerminalResult>;
@@ -18,13 +20,15 @@ export class Terminal {
 	private kernel: KernelClient;
 	private cwd: string;
 	private promptStr: string;
+	private clearScreenCode: string;
 	private handlers: Map<string, CommandHandler> = new Map();
 	private history: string[] = [];
 
 	constructor(kernel: KernelClient, opts: TerminalOptions = {}) {
 		this.kernel = kernel;
-		this.cwd = normalizePath(opts.cwd ?? '/');
-		this.promptStr = opts.prompt ?? 'os';
+		this.cwd = normalizePath(opts.cwd ?? defaultAppConfig.filesystem.rootPath);
+		this.promptStr = opts.prompt ?? defaultAppConfig.terminal.promptDefault;
+		this.clearScreenCode = opts.clearScreenCode ?? defaultAppConfig.terminal.clearScreenCode;
 		this.registerBuiltins();
 	}
 
@@ -78,6 +82,7 @@ export class Terminal {
 					'  mkdir <path>           - Create a directory',
 					'  cat <file>             - Display file contents',
 					'  open <file>            - Open file in text viewer',
+					'  edit <file>            - Edit file in text editor',
 					'  echo <text> > <file>   - Write text to file',
 					'  rm <file>              - Remove a file',
 					'  rmdir <dir>            - Remove an empty directory',
@@ -96,7 +101,7 @@ export class Terminal {
 		});
 
 		this.handlers.set('clear', async () => {
-			return ok('\u001b[2J\u001b[H');
+			return ok(this.clearScreenCode);
 		});
 
 		this.handlers.set('reset', async () => {
@@ -165,6 +170,28 @@ export class Terminal {
 				const e = err instanceof Error ? err : new Error(String(err));
 				return fail(`cannot open '${filePath}': ${e.message}`);
 			}
+		});
+
+		this.handlers.set('edit', async (args) => {
+			if (args.length === 0) {
+				return fail('usage: edit <file>');
+			}
+
+			const filePath = normalizePath(resolvePath(this.cwd, args[0]));
+
+			try {
+				const stat = await this.kernel.fs_stat(filePath);
+				if (stat.is_dir) {
+					return fail(`${filePath} is a directory, not a file`);
+				}
+			} catch {
+				// Create the file if it does not exist
+				const encoder = new TextEncoder();
+				await this.kernel.fs_write_file(filePath, encoder.encode(''));
+			}
+
+			(window as Window & { openEditor?: (path: string) => void }).openEditor?.(filePath);
+			return ok(`Editing ${filePath}...`);
 		});
 
 		this.handlers.set('cd', async (args) => {

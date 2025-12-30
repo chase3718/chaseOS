@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useKernel } from '../../contexts/useKernel';
-import './TextViewer.css';
 
 interface TextViewerProps {
 	filePath?: string;

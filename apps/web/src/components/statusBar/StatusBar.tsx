@@ -1,5 +1,4 @@
 import type { WindowItem } from '../../App';
-import './StatusBar.css';
 import Clock from './widgets/clock';
 
 export type StatusBarProps = {

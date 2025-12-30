@@ -1,14 +1,8 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Terminal } from '../../kernel/terminal';
 import { useKernel } from '../../contexts/useKernel';
-import {
-	TERMINAL_WELCOME_MESSAGE,
-	TERMINAL_PROMPT_DEFAULT,
-	CLEAR_SCREEN_CODE,
-	KEYBIND_INTERRUPT,
-	KEYBIND_CLEAR_TERMINAL,
-} from '../../constants';
-import './TerminalUI.css';
+import { useConfig } from '../../contexts';
+import type { Keybind } from '../../config/appConfig';
 
 interface OutputLine {
 	type: 'input' | 'output' | 'error';
@@ -23,17 +17,37 @@ interface FileEntry {
 
 export function TerminalUI() {
 	const { kernel } = useKernel();
-	const terminal = useMemo(() => new Terminal(kernel, { prompt: TERMINAL_PROMPT_DEFAULT }), [kernel]);
+	const { config } = useConfig();
+	const terminal = useMemo(
+		() =>
+			new Terminal(kernel, {
+				prompt: config.terminal.promptDefault,
+				clearScreenCode: config.terminal.clearScreenCode,
+			}),
+		[kernel, config.terminal.promptDefault, config.terminal.clearScreenCode]
+	);
 	const [lines, setLines] = useState<OutputLine[]>([
 		{
 			type: 'output',
-			content: TERMINAL_WELCOME_MESSAGE,
+			content: config.terminal.welcomeMessage,
 		},
 	]);
 	const [input, setInput] = useState('');
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const outputRef = useRef<HTMLDivElement>(null);
+
+	const matchesKeybind = (event: React.KeyboardEvent<HTMLInputElement>, bind: Keybind) => {
+		const expectedAlt = bind.alt ?? false;
+		const expectedCtrl = bind.ctrl ?? false;
+		const expectedShift = bind.shift ?? false;
+		return (
+			event.altKey === expectedAlt &&
+			event.ctrlKey === expectedCtrl &&
+			event.shiftKey === expectedShift &&
+			(event.key === bind.key || event.key === bind.key.toUpperCase())
+		);
+	};
 
 	// Auto-scroll to bottom when new lines are added
 	useEffect(() => {
@@ -46,6 +60,17 @@ export function TerminalUI() {
 	useEffect(() => {
 		inputRef.current?.focus();
 	}, []);
+
+	useEffect(() => {
+		setLines([
+			{
+				type: 'output',
+				content: config.terminal.welcomeMessage,
+			},
+		]);
+		setInput('');
+		setHistoryIndex(-1);
+	}, [config.terminal.welcomeMessage]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -73,7 +98,7 @@ export function TerminalUI() {
 
 			// Add output
 			if (result.stdout) {
-				if (result.stdout === CLEAR_SCREEN_CODE) {
+				if (result.stdout === config.terminal.clearScreenCode) {
 					// Handle clear screen command
 					setLines(() => []);
 				} else {
@@ -134,6 +159,7 @@ export function TerminalUI() {
 				'mkdir',
 				'cat',
 				'echo',
+				'edit',
 				'rm',
 				'rmdir',
 				'mv',
@@ -153,6 +179,7 @@ export function TerminalUI() {
 				tree: [-1], // Optional directory
 				mkdir: [-1], // Only directories
 				cat: [-1], // Files
+				edit: [-1], // Files
 				rm: [-1], // Files or directories
 				rmdir: [-1], // Only directories
 				mv: [-1], // Source and destination
@@ -316,7 +343,7 @@ export function TerminalUI() {
 				setHistoryIndex(newIndex);
 				setInput(history[newIndex]);
 			}
-		} else if (e.ctrlKey && e.key === KEYBIND_INTERRUPT.key) {
+		} else if (matchesKeybind(e, config.keyboard.interrupt)) {
 			e.preventDefault();
 			setInput('');
 			setLines((prev) => [
@@ -327,7 +354,7 @@ export function TerminalUI() {
 					prompt: terminal.prompt,
 				},
 			]);
-		} else if (e.ctrlKey && e.key === KEYBIND_CLEAR_TERMINAL.key) {
+		} else if (matchesKeybind(e, config.keyboard.clearTerminal)) {
 			e.preventDefault();
 			setLines([]);
 		}

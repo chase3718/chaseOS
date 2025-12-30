@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { TerminalUI } from './applications/terminal/TerminalUI';
 import { TextViewer } from './applications/textViewer/TextViewer';
+import { TextEditor } from './applications/textEditor/TextEditor';
 import Window from './components/window/Window';
-import { KernelProvider } from './contexts';
-import { KEYBIND_NEW_WINDOW, KEYBIND_CLOSE_WINDOW } from './constants';
-import './App.css';
+import { ConfigProvider, KernelProvider, useConfig } from './contexts';
+import type { Keybind } from './config/appConfig';
 import type { ReactNode } from 'react';
 import StatusBar from './components/statusBar/StatusBar';
 import Toast from './components/toast/Toast';
@@ -18,11 +18,25 @@ export interface WindowItem {
 }
 
 function AppContent() {
+	const { config } = useConfig();
 	const [windows, setWindows] = useState<WindowItem[]>([
 		{ id: crypto.randomUUID(), title: 'Terminal', component: <TerminalUI /> },
 	]);
 	const [focusedWindow, setFocusedWindow] = useState<string | undefined>(windows[0]?.id || undefined);
 	const [showFullscreenToast, setShowFullscreenToast] = useState(false);
+
+	const matchesKeybind = (event: KeyboardEvent, bind: Keybind) => {
+		const expectedAlt = bind.alt ?? false;
+		const expectedCtrl = bind.ctrl ?? false;
+		const expectedShift = bind.shift ?? false;
+
+		return (
+			event.altKey === expectedAlt &&
+			event.ctrlKey === expectedCtrl &&
+			event.shiftKey === expectedShift &&
+			(event.key === bind.key || event.key === bind.key.toUpperCase())
+		);
+	};
 
 	// Check if fullscreen on mount
 	useEffect(() => {
@@ -53,8 +67,7 @@ function AppContent() {
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			// Alt+Enter: Open new terminal
-			if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === KEYBIND_NEW_WINDOW.key) {
+			if (matchesKeybind(e, config.keyboard.newWindow)) {
 				e.preventDefault();
 				e.stopPropagation();
 				const newWindow: WindowItem = {
@@ -64,19 +77,12 @@ function AppContent() {
 				};
 				setWindows((prev) => [...prev, newWindow]);
 				setFocusedWindow(newWindow.id);
-			}
-			// Alt+Shift+Q: Close focused window
-			else if (
-				e.altKey &&
-				e.shiftKey &&
-				(e.key === KEYBIND_CLOSE_WINDOW.key || e.key === KEYBIND_CLOSE_WINDOW.key.toUpperCase())
-			) {
+			} else if (matchesKeybind(e, config.keyboard.closeWindow)) {
 				e.preventDefault();
 				e.stopPropagation();
 				if (focusedWindow !== undefined) {
 					setWindows((prev) => {
 						const filtered = prev.filter((w) => w.id !== focusedWindow);
-						// Set focus to first remaining non-minimized window
 						const nextFocus = filtered.find((w) => !w.minimized);
 						setFocusedWindow(nextFocus?.id);
 						return filtered;
@@ -87,7 +93,7 @@ function AppContent() {
 
 		window.addEventListener('keydown', handleKeyDown, { capture: true });
 		return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-	}, [focusedWindow, windows]);
+	}, [focusedWindow, windows, config.keyboard.closeWindow, config.keyboard.newWindow]);
 
 	const closeWindow = (id: string) => {
 		setWindows((prev) => prev.filter((w) => w.id !== id));
@@ -131,9 +137,20 @@ function AppContent() {
 		setFocusedWindow(newWindow.id);
 	};
 
+	const openEditor = (filePath: string) => {
+		const newWindow: WindowItem = {
+			id: crypto.randomUUID(),
+			title: `Editor - ${filePath}`,
+			component: <TextEditor filePath={filePath} />,
+		};
+		setWindows((prev) => [...prev, newWindow]);
+		setFocusedWindow(newWindow.id);
+	};
+
 	// Expose openFile to window for terminal access
 	useEffect(() => {
 		(window as unknown as Window & { openFile: typeof openFile }).openFile = openFile;
+		(window as unknown as Window & { openEditor: typeof openEditor }).openEditor = openEditor;
 	}, []);
 
 	return (
@@ -179,7 +196,9 @@ function AppContent() {
 export default function App() {
 	return (
 		<KernelProvider>
-			<AppContent />
+			<ConfigProvider>
+				<AppContent />
+			</ConfigProvider>
 		</KernelProvider>
 	);
 }

@@ -9,4 +9,9 @@ export default defineConfig({
 		exclude: ['kernel'],
 	},
 	ssr: { noExternal: ['kernel'] },
+	server: {
+		fs: {
+			allow: ['..', '../..'],
+		},
+	},
 });

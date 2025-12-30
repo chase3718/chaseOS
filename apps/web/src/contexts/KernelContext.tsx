@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { KernelClient } from '../kernel/kernelClient';
 import { KernelContext } from './kernelContext';
-import { KERNEL_LOADING_STYLES, KERNEL_LOADING_MESSAGE } from './constants';
+import { defaultAppConfig } from '../config/appConfig';
 
 interface KernelProviderProps {
 	children: ReactNode;
@@ -32,7 +32,7 @@ export function KernelProvider({ children }: KernelProviderProps) {
 	const value = useMemo(() => (kernel ? { kernel, isReady } : null), [kernel, isReady]);
 
 	if (!kernel || !isReady) {
-		return <div style={KERNEL_LOADING_STYLES}>{KERNEL_LOADING_MESSAGE}</div>;
+		return <div style={defaultAppConfig.loading.styles}>{defaultAppConfig.loading.message}</div>;
 	}
 
 	return <KernelContext.Provider value={value}>{children}</KernelContext.Provider>;

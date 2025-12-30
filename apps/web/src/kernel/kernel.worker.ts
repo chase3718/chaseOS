@@ -2,9 +2,10 @@
 
 import type { KernelRequest, KernelResponse } from './protocol';
 import { installIdbGlobals } from './idbDriver';
-import { IDB_FS_STATE_KEY } from '../constants';
+import { defaultAppConfig } from '../config/appConfig';
+import { defaultThemeCss } from '../theme/defaultTheme';
 
-const FS_KEY = IDB_FS_STATE_KEY;
+const FS_KEY = defaultAppConfig.idb.fsStateKey;
 
 interface KernelAPI {
 	hello(name: string): string;
@@ -63,10 +64,15 @@ let api: KernelAPI | null = null;
 					api.fs_mkdir(dir);
 				}
 
-				const appDirs = ['/apps/terminal', '/apps/textviewer', '/apps/filebrowser', '/apps/notes'];
+				const appDirs = ['/apps/terminal', '/apps/textviewer', '/apps/filebrowser', '/apps/notes', '/apps/editor'];
 				for (const dir of appDirs) {
 					api.fs_mkdir(dir);
 				}
+
+				const encoder = new TextEncoder();
+				const configText = JSON.stringify(defaultAppConfig, null, 2);
+				api.fs_write_file('/etc/app-config.json', encoder.encode(configText));
+				api.fs_write_file('/etc/theme.css', encoder.encode(defaultThemeCss));
 
 				const welcomeText = [
 					'=============================================================',
@@ -166,7 +172,6 @@ let api: KernelAPI | null = null;
 					'',
 					'Enjoy exploring ChaseOS!',
 				].join('\n');
-				const encoder = new TextEncoder();
 				api.fs_write_file('/home/welcome.txt', encoder.encode(welcomeText));
 
 				const terminalInfo = [
@@ -211,11 +216,96 @@ let api: KernelAPI | null = null;
 				].join('\n');
 				api.fs_write_file('/apps/notes/README.txt', encoder.encode(notesInfo));
 
+				const editorInfo = [
+					'Text Editor Application',
+					'',
+					'Create and edit text files directly in the browser.',
+					'Usage: edit <filepath>',
+					'Files are saved back to the virtual filesystem.',
+				].join('\n');
+				api.fs_write_file('/apps/editor/README.txt', encoder.encode(editorInfo));
+				const resumeText = [
+					'Chase Williams',
+					'chase.williams@chasehw.com ❖ (513) 498-8547 ❖ Bristol Township, PA',
+					'',
+					'',
+					'WORK EXPERIENCE',
+					'',
+					'Bristol Myers Squibb                                     Dec 2022 – Present',
+					'Full Stack Software Engineer II                             Princeton, NJ',
+					'Played a critical role in a project, saving the company ~$500,000 a year.',
+					'Met with critical senior and VP level business users to provide insight and expertise, resulting in a less than 6 month turn around.',
+					'Worked with UI/UX designers to develop UI, resulting in a 30% increase in product delivery speed and effectiveness.',
+					'Reviewed project requirements, collaborated on R&ED IT projects, and ensured the delivery of a quality technical solution in less than 6 months.',
+					'Mentored an intern on an internal mobile application project, ensuring successful product delivery within 6 months.',
+					'Contributed to all phases of BPM application software development life cycle.',
+					'Participated in process reviews, architecture design, and BPM platform roadmap.',
+					'',
+					'Evoke Technologies                                      Aug 2019 – Dec 2022',
+					'Full Stack Software Engineer                              Dayton, OH',
+					'Participated actively in company development meetings, contributing insights and expertise as a consultant for up to 4 separate teams.',
+					'Demonstrated proficiency in writing and maintaining high-quality code.',
+					'Conducted comprehensive development tests to ensure the reliability and functionality of software applications to maintain a 99.99% uptime.',
+					'Engaged with consumers to gather valuable insights into program functionality and promptly responded to development team requests.',
+					'',
+					'POWERsonic Industries                                 Oct 2018 – Apr 2019',
+					'Cable Harness Assembler                                Sharonville, OH',
+					'Interpreted schematic drawings, diagrams, blueprints, specifications, work orders, and reports in order to ascertain materials requirements and assembly instructions.',
+					'Positioned, aligned, and adjusted work pieces or electrical components to facilitate wiring or assembly.',
+					'Collaborated with supervisors and engineers to plan, reviewed work activities, and resolved production problems.',
+					'Inspected and tested wiring installations, assemblies, and circuits for resistance factors or proper operation, recording results.',
+					'',
+					'CERTIFICATIONS',
+					'',
+					'Full Stack Software Development Certificate                   July 2019',
+					'MAX Technical Training                                    Mason, OH',
+					'',
+					'SKILLS',
+					'',
+					'Java, JavaScript, TypeScript, C#, C++, HTML, CSS, React, Angular, NextJS, Node.js, Express, AWS, SQL, MongoDB, Git, SVN, Linux, Agile/Scrum, Webpack',
+				].join('\n');
+				api.fs_write_file('/home/resume.txt', encoder.encode(resumeText));
 				await persist();
 				console.log('[kernel] Filesystem initialized');
 			} catch (err) {
 				console.error('[kernel] Failed to create base filesystem:', err);
 			}
+		}
+
+		try {
+			api.fs_stat('/etc/app-config.json');
+		} catch {
+			const encoder = new TextEncoder();
+			const configText = JSON.stringify(defaultAppConfig, null, 2);
+			api.fs_write_file('/etc/app-config.json', encoder.encode(configText));
+			await persist();
+			console.log('[kernel] Added missing app-config.json');
+		}
+
+		try {
+			api.fs_stat('/etc/theme.css');
+		} catch {
+			const encoder = new TextEncoder();
+			api.fs_write_file('/etc/theme.css', encoder.encode(defaultThemeCss));
+			await persist();
+			console.log('[kernel] Added missing theme.css');
+		}
+
+		try {
+			api.fs_stat('/apps/editor');
+		} catch {
+			api.fs_mkdir('/apps/editor');
+			const encoder = new TextEncoder();
+			const editorInfo = [
+				'Text Editor Application',
+				'',
+				'Create and edit text files directly in the browser.',
+				'Usage: edit <filepath>',
+				'Files are saved back to the virtual filesystem.',
+			].join('\n');
+			api.fs_write_file('/apps/editor/README.txt', encoder.encode(editorInfo));
+			await persist();
+			console.log('[kernel] Added missing /apps/editor');
 		}
 
 		console.log('[kernel] Filesystem initialized');

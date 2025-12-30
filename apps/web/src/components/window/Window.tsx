@@ -1,5 +1,3 @@
-import './Window.css';
-
 export type WindowProps = {
 	children: React.ReactNode;
 	focused?: boolean;

@@ -2,10 +2,10 @@
  * Minimal IndexedDB key-value store for persisting kernel state.
  * Provides global functions that can be called from the WASM kernel.
  */
-import { IDB_DATABASE_NAME, IDB_STORE_NAME } from '../constants';
+import { defaultAppConfig } from '../config/appConfig';
 
-const DB_NAME = IDB_DATABASE_NAME;
-const STORE_NAME = IDB_STORE_NAME;
+const DB_NAME = defaultAppConfig.idb.databaseName;
+const STORE_NAME = defaultAppConfig.idb.storeName;
 
 /**
  * Opens or creates the IndexedDB database.
