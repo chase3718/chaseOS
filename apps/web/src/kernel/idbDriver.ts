@@ -81,3 +81,14 @@ export function installIdbGlobals(): void {
 	(globalThis as any).__idb_get_bytes = getBytes;
 	(globalThis as any).__idb_set_bytes = setBytes;
 }
+
+/**
+ * Clears the entire IndexedDB database.
+ */
+export function clearDatabase(): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const req = indexedDB.deleteDatabase(DB_NAME);
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error ?? new Error('Failed to delete IndexedDB'));
+	});
+}

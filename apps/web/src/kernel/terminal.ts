@@ -1,4 +1,5 @@
 import type { KernelClient } from './kernelClient';
+import { clearDatabase } from './idbDriver';
 
 export type TerminalResult = {
 	stdout: string;
@@ -29,6 +30,10 @@ export class Terminal {
 
 	get prompt(): string {
 		return `${this.promptStr}:${this.cwd}$`;
+	}
+
+	getCwd(): string {
+		return this.cwd;
 	}
 
 	getHistory(): readonly string[] {
@@ -69,26 +74,68 @@ export class Terminal {
 					'  pwd                    - Print working directory',
 					'  cd <path>              - Change directory',
 					'  ls [path]              - List directory contents',
+					'  tree [path]            - Display directory tree',
 					'  mkdir <path>           - Create a directory',
 					'  cat <file>             - Display file contents',
+					'  open <file>            - Open file in text viewer',
 					'  echo <text> > <file>   - Write text to file',
 					'  rm <file>              - Remove a file',
 					'  rmdir <dir>            - Remove an empty directory',
 					'  mv <from> <to>         - Move/rename file or directory',
 					'  cp <from> <to>         - Copy a file',
 					'  stat <path>            - Show file/directory information',
+					'  sudo reset --confirm   - Clear filesystem and reload',
 					'',
 					'Examples:',
 					'  mkdir /docs',
 					'  echo "Hello World" > /docs/hello.txt',
 					'  cat /docs/hello.txt',
-					'  ls /docs',
+					'  tree /docs',
 				].join('\n')
 			);
 		});
 
 		this.handlers.set('clear', async () => {
 			return ok('\u001b[2J\u001b[H');
+		});
+
+		this.handlers.set('reset', async () => {
+			return fail('Permission denied. Use "sudo reset" to reset the filesystem.');
+		});
+
+		this.handlers.set('sudo', async (args) => {
+			if (args.length === 0) {
+				return fail('usage: sudo <command> [args...]');
+			}
+
+			const subCommand = args[0];
+
+			if (subCommand === 'reset') {
+				const hasConfirm = args.includes('--confirm');
+
+				if (!hasConfirm) {
+					return fail(
+						[
+							'WARNING: This will permanently delete all files and directories!',
+							'',
+							'If you are sure, type: sudo reset --confirm',
+						].join('\n')
+					);
+				}
+
+				// Confirmed - proceed with reset
+				try {
+					await clearDatabase();
+					// Reload the page to reinitialize with fresh filesystem
+					window.location.reload();
+					return ok('Resetting filesystem...');
+				} catch (err) {
+					const e = err instanceof Error ? err : new Error(String(err));
+					return fail(`Failed to reset: ${e.message}`);
+				}
+			}
+
+			return fail(`sudo: ${subCommand}: command not found`);
 		});
 
 		this.handlers.set('hello', async (args) => {
@@ -98,6 +145,27 @@ export class Terminal {
 		});
 
 		this.handlers.set('pwd', async () => ok(this.cwd));
+
+		this.handlers.set('open', async (args) => {
+			if (args.length === 0) {
+				return fail('usage: open <file>');
+			}
+
+			const filePath = normalizePath(resolvePath(this.cwd, args[0]));
+
+			try {
+				const stat = await this.kernel.fs_stat(filePath);
+				if (stat.is_dir) {
+					return fail(`${filePath} is a directory, not a file`);
+				}
+
+				(window as Window & { openFile?: (path: string) => void }).openFile?.(filePath);
+				return ok(`Opening ${filePath}...`);
+			} catch (err) {
+				const e = err instanceof Error ? err : new Error(String(err));
+				return fail(`cannot open '${filePath}': ${e.message}`);
+			}
+		});
 
 		this.handlers.set('cd', async (args) => {
 			const target = args[0] ?? '/';
@@ -125,6 +193,18 @@ export class Terminal {
 					return ok('');
 				}
 				return ok(entries.join('\n'));
+			} catch (err) {
+				const e = err instanceof Error ? err : new Error(String(err));
+				return fail(e.message);
+			}
+		});
+
+		this.handlers.set('tree', async (args) => {
+			const target = args[0] ? normalizePath(resolvePath(this.cwd, args[0])) : this.cwd;
+
+			try {
+				const tree = await this.buildTree(target, '', true);
+				return ok(tree);
 			} catch (err) {
 				const e = err instanceof Error ? err : new Error(String(err));
 				return fail(e.message);
@@ -165,13 +245,10 @@ export class Terminal {
 		});
 
 		this.handlers.set('echo', async (args) => {
-			// Handle: echo text > file
 			const redirectIndex = args.indexOf('>');
 
-			if (redirectIndex === -1) {
-				// Just print to stdout
-				return ok(args.join(' '));
-			}
+			// if (redirectIndex === -1) {
+			// }
 
 			if (redirectIndex === args.length - 1) {
 				return fail('usage: echo <text> > <file>');
@@ -275,9 +352,65 @@ export class Terminal {
 			}
 		});
 	}
-}
 
-// -------- helpers --------
+	private async buildTree(path: string, prefix: string, isRoot: boolean): Promise<string> {
+		const lines: string[] = [];
+
+		if (isRoot) {
+			lines.push(path);
+		}
+
+		try {
+			const entries = await this.kernel.fs_readdir(path);
+			const dirEntries: string[] = [];
+			const fileEntries: string[] = [];
+
+			for (const entry of entries) {
+				const entryPath = `${path === '/' ? '' : path}/${entry}`;
+				try {
+					const stat = await this.kernel.fs_stat(entryPath);
+					if (stat.is_dir) {
+						dirEntries.push(entry);
+					} else {
+						fileEntries.push(entry);
+					}
+				} catch {
+					fileEntries.push(entry);
+				}
+			}
+
+			dirEntries.sort();
+			fileEntries.sort();
+			const sorted = [...dirEntries, ...fileEntries];
+
+			for (let i = 0; i < sorted.length; i++) {
+				const entry = sorted[i];
+				const entryPath = `${path === '/' ? '' : path}/${entry}`;
+				const isLast = i === sorted.length - 1;
+				const connector = isLast ? '└── ' : '├── ';
+
+				try {
+					const stat = await this.kernel.fs_stat(entryPath);
+					if (stat.is_dir) {
+						lines.push(`${prefix}${connector}${entry}/`);
+						const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+						const subTree = await this.buildTree(entryPath, nextPrefix, false);
+						const subLines = subTree.split('\n').filter((line) => line.length > 0);
+						lines.push(...subLines);
+					} else {
+						lines.push(`${prefix}${connector}${entry}`);
+					}
+				} catch {
+					lines.push(`${prefix}${connector}${entry}`);
+				}
+			}
+		} catch {
+			// Silently fail on directory read errors
+		}
+
+		return lines.join('\n');
+	}
+}
 
 function ok(stdout: string): TerminalResult {
 	return { stdout, stderr: '', code: 0 };

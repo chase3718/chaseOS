@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TerminalUI } from './applications/terminal/TerminalUI';
+import { TextViewer } from './applications/textViewer/TextViewer';
 import Window from './components/window/Window';
 import { KernelProvider } from './contexts';
 import { KEYBIND_NEW_WINDOW, KEYBIND_CLOSE_WINDOW } from './constants';
@@ -28,9 +29,9 @@ function AppContent() {
 		const checkFullscreen = () => {
 			const isFullScreenAPI = Boolean(
 				document.fullscreenElement ||
-					(document as any).webkitFullscreenElement ||
-					(document as any).mozFullScreenElement ||
-					(document as any).msFullscreenElement
+					(document as Document & { webkitFullscreenElement: Element | null }).webkitFullscreenElement ||
+					(document as Document & { mozFullScreenElement: Element | null }).mozFullScreenElement ||
+					(document as Document & { msFullscreenElement: Element | null }).msFullscreenElement
 			);
 
 			// Also check window dimensions (F11 fullscreen)
@@ -119,6 +120,21 @@ function AppContent() {
 			})
 		);
 	};
+
+	const openFile = (filePath: string) => {
+		const newWindow: WindowItem = {
+			id: crypto.randomUUID(),
+			title: `Viewer - ${filePath}`,
+			component: <TextViewer filePath={filePath} />,
+		};
+		setWindows((prev) => [...prev, newWindow]);
+		setFocusedWindow(newWindow.id);
+	};
+
+	// Expose openFile to window for terminal access
+	useEffect(() => {
+		(window as unknown as Window & { openFile: typeof openFile }).openFile = openFile;
+	}, []);
 
 	return (
 		<>
