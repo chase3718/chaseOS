@@ -91,6 +91,7 @@ function AppContent() {
 				setWindowMinimized={windowManager.setWindowMinimized}
 				setWindowMaximized={windowManager.setWindowMaximized}
 				windows={windowManager.windows}
+				addWindow={windowManager.addWindow}
 			/>
 			{showFullscreenToast && (
 				<Toast

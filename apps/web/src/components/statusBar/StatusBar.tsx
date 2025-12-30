@@ -1,5 +1,6 @@
 import type { WindowItem } from '../../types/window';
 import Clock from './widgets/clock';
+import ApplicationLauncher from './widgets/applicationLauncher';
 
 export type StatusBarProps = {
 	windows: Array<WindowItem>;
@@ -7,6 +8,7 @@ export type StatusBarProps = {
 	setWindowMaximized: (id: string, maximized: boolean) => void;
 	setFocusedWindow: (id: string | undefined) => void;
 	focusedWindow?: string;
+	addWindow: (window: Omit<WindowItem, 'id'>) => void;
 };
 
 export default function StatusBar({
@@ -15,10 +17,11 @@ export default function StatusBar({
 	setWindowMaximized,
 	focusedWindow,
 	setFocusedWindow,
+	addWindow,
 }: StatusBarProps) {
 	return (
 		<div id="status-bar">
-			Status Bar
+			<ApplicationLauncher onLaunchApp={addWindow} />
 			<span className="status-bar-spacer" />
 			<span className="status-bar-task-items-container">
 				{windows.map((win) => (
