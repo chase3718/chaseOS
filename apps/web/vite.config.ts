@@ -9,6 +9,9 @@ export default defineConfig({
 		exclude: ['kernel'],
 	},
 	ssr: { noExternal: ['kernel'] },
+	worker: {
+		format: 'es',
+	},
 	server: {
 		fs: {
 			allow: ['..', '../..'],

@@ -46,10 +46,13 @@ let api: KernelAPI | null = null;
 		const kernelModule = await import('kernel');
 		console.log('[kernel] Kernel module imported');
 
-		await kernelModule.default();
-		console.log('[kernel] WASM initialized');
+		// Initialize WASM (required for --target web)
+		if (typeof kernelModule.default === 'function') {
+			await kernelModule.default();
+			console.log('[kernel] WASM initialized');
+		}
 
-		api = kernelModule as KernelAPI;
+		api = kernelModule as unknown as KernelAPI;
 
 		console.log('[kernel] Loading persisted state...');
 		const persisted = await idbGetBytes(FS_KEY);
