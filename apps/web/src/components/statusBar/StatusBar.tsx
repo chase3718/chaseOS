@@ -1,4 +1,4 @@
-import type { WindowItem } from '../../App';
+import type { WindowItem } from '../../types/window';
 import Clock from './widgets/clock';
 
 export type StatusBarProps = {
