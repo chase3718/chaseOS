@@ -1,0 +1,12 @@
+/target
+Cargo.lock
+
+# Generated WASM outputs (if not committed)
+# pkg/
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
