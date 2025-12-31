@@ -16,12 +16,17 @@ function AppContent() {
 	const { config } = useConfig();
 	const showFullscreenToast = useFullscreenCheck();
 
-	// Initialize window manager with a terminal
+	// Initialize window manager with a terminal and welcome file
 	const initialTerminal = ApplicationFactory.createTerminal();
+	const welcomeViewer = ApplicationFactory.createTextViewer('/home/welcome.txt');
 	const windowManager = useWindowManager([
 		{
 			id: crypto.randomUUID(),
 			...initialTerminal,
+		},
+		{
+			id: crypto.randomUUID(),
+			...welcomeViewer,
 		},
 	]);
 

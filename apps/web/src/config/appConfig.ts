@@ -54,7 +54,7 @@ export const CONFIG_PATH = '/etc/app-config.json';
 
 export const defaultAppConfig: AppConfig = {
 	terminal: {
-		welcomeMessage: 'ChaseOS v1.0.0 - Type "help" for available commands',
+		welcomeMessage: 'ChaseOS v1.0.2 - Type "help" for available commands',
 		promptDefault: 'chaseos',
 		clearScreenCode: '\u001b[2J\u001b[H',
 	},
