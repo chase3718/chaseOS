@@ -310,7 +310,7 @@ let api: KernelAPI | null = null;
 				const resumeText = [
 					'Chase Williams',
 					'Bristol Township, PA',
-					'chase.williams@chasehw.com | (513) 498-8547',
+					'chase.williams@chasehw.com',
 					'',
 					'',
 					'SUMMARY',
