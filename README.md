@@ -101,10 +101,8 @@ portfolio/
 ChaseOS includes 19+ built-in commands:
 
 - **File System**: `ls`, `cd`, `pwd`, `mkdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `touch`
-- **System**: `clear`, `help`, `whoami`, `date`, `uname`, `theme`
-- **Development**: `git` (basic), `npm` (info)
-- **Text**: `grep`, `wc`, `head`, `tail`
-- **Applications**: `open`, `edit`, `view`
+- **System**: `clear`, `help`
+- **Applications**: `open`, `edit`
 
 Type `help` in the terminal to see all available commands.
 
